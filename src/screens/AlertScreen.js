@@ -3,10 +3,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, FONTS, RADIUS, SPACING } from '../constants/theme';
 
 const MOCK_ALERTS = [
-  { icon: '??', title: 'Landslide Risk Active',    desc: 'Altitude 1,340m + heavy rain forecast', time: '2 min ago',  color: COLORS.danger  },
-  { icon: '??', title: 'Steep Slope Detected',     desc: 'Current gradient 38 degrees. Reduce speed.', time: 'Just now', color: COLORS.caution },
-  { icon: '??', title: 'Report Verified',           desc: 'Road block at NH-58 confirmed by 4 users.', time: '15 min ago', color: COLORS.accent },
-  { icon: '??', title: 'Safe Zone Ahead',           desc: 'Shelter point 2.1 km on your route.',   time: 'Now',        color: COLORS.safe    },
+  { icon: '!', iconBg: COLORS.danger,  title: 'Landslide Risk Active',    desc: 'Altitude 1,340m + heavy rain forecast next 3h', time: '2 min ago',  color: COLORS.danger  },
+  { icon: '~', iconBg: COLORS.caution, title: 'Steep Slope Detected',     desc: 'Current gradient 38 degrees. Reduce speed.',    time: 'Just now',   color: COLORS.caution },
+  { icon: 'i', iconBg: COLORS.accent,  title: 'Report Verified',           desc: 'Road block at NH-58 confirmed by 4 users.',     time: '15 min ago', color: COLORS.accent  },
+  { icon: 'OK', iconBg: COLORS.safe,   title: 'Safe Zone Ahead',           desc: 'Shelter point 2.1 km on your route.',           time: 'Now',        color: COLORS.safe    },
 ];
 
 export default function AlertScreen() {

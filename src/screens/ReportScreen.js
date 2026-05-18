@@ -3,10 +3,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, FONTS, RADIUS, SPACING } from '../constants/theme';
 
 const TYPES = [
-  { id: 'landslide', label: 'Landslide', icon: '??', color: COLORS.danger  },
-  { id: 'flood',     label: 'Flood Zone', icon: '??', color: COLORS.caution },
-  { id: 'road',      label: 'Road Block', icon: '??', color: COLORS.orange  },
-  { id: 'shelter',   label: 'Shelter',   icon: '??', color: COLORS.safe    },
+  { id: 'landslide', label: 'Landslide', icon: '⚠️ Crack', color: COLORS.danger  },
+  { id: 'flood',     label: 'Flood Zone', icon: '💧 Flood', color: COLORS.caution },
+  { id: 'road',      label: 'Road Block', icon: '🚫 Road',  color: COLORS.orange  },
+  { id: 'shelter',   label: 'Shelter',   icon: '✅ Safe',   color: COLORS.safe    },
 ];
 
 export default function ReportScreen() {

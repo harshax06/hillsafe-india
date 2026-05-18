@@ -1,221 +1,231 @@
-// ─── HomeScreen ──────────────────────────────────────────────────────────────
-// The main dashboard screen of HillSafe.
-// Shows: GPS status, altitude meter, slope gauge, stat grid, risk score, SOS button.
-// All sensor data comes from the useSensors() hook.
-
+import { useState } from 'react';
 import {
   View, Text, ScrollView, StyleSheet,
   TouchableOpacity, ActivityIndicator, Linking, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 
 import useSensors from '../hooks/useSensors';
 import AltitudeMeter from '../components/AltitudeMeter';
-import SlopeGauge from '../components/SlopeGauge';
-import RiskScoreCard from '../components/RiskScoreCard';
+import { SlopeGauge, RiskScoreCard } from '../components/SlopeGauge';
+import AltitudeGraph from '../components/AltitudeGraph';
+import PressureCard from '../components/PressureCard';
+import CalibrationModal from '../components/CalibrationModal';
 import { COLORS, FONTS, RADIUS, SPACING } from '../constants/theme';
 
 export default function HomeScreen() {
+  const [showCalib, setShowCalib] = useState(false);
+
   const {
-    altitude, slope, pressure, coords,
-    riskLevel, slopeSeverity, riskScore,
-    loading, error, hasBarometer,
+    altitude,
+    gpsAltitude,
+    baroAltitude,
+    slope,
+    pressure,
+    coords,
+    riskLevel,
+    slopeSeverity,
+    riskScore,
+    altHistory,
+    pressureTrend,
+    movementLabel,
+    maxAlt,
+    minAlt,
+    sessionMinutes,
+    loading,
+    error,
+    hasBarometer,
+    calibOffset,
+    calibrate,
+    resetCalibration,
   } = useSensors();
 
-  // ── SOS handler ─────────────────────────────────────────────────────────
   const handleSOS = () => {
     if (!coords) {
-      Alert.alert('GPS not ready', 'Please wait for GPS to acquire your location.');
+      Alert.alert('GPS not ready', 'Waiting for GPS signal...');
       return;
     }
-    const msg = `🆘 HILLSAFE SOS ALERT!\nI need help! My location:\nLat: ${coords.latitude.toFixed(5)}\nLng: ${coords.longitude.toFixed(5)}\nAltitude: ${altitude}m\nGoogle Maps: https://maps.google.com/?q=${coords.latitude},${coords.longitude}`;
-    // Opens WhatsApp or SMS with pre-filled message
-    const smsUrl = `sms:?body=${encodeURIComponent(msg)}`;
-    Linking.openURL(smsUrl).catch(() => {
-      Alert.alert('SOS', msg); // fallback: show in alert so user can copy
-    });
+    const msg =
+      'HILLSAFE SOS ALERT!\n' +
+      'I need help! My location:\n' +
+      'Lat: ' + coords.latitude.toFixed(5) + '\n' +
+      'Lng: ' + coords.longitude.toFixed(5) + '\n' +
+      'Altitude: ' + altitude + 'm\n' +
+      'Maps: https://maps.google.com/?q=' + coords.latitude + ',' + coords.longitude;
+    Linking.openURL('sms:?body=' + encodeURIComponent(msg)).catch(() =>
+      Alert.alert('SOS Alert', msg)
+    );
   };
 
-  // ── Loading state ────────────────────────────────────────────────────────
   if (loading) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color={COLORS.accent} />
         <Text style={styles.loadingText}>Acquiring GPS signal...</Text>
-        <Text style={styles.loadingSubtext}>Please allow location permission</Text>
+        <Text style={styles.loadingSub}>Allow location permission when prompted</Text>
       </View>
     );
   }
 
-  // ── Error state ──────────────────────────────────────────────────────────
   if (error) {
     return (
       <View style={styles.centered}>
-        <Text style={{ fontSize: 40 }}>📡</Text>
         <Text style={styles.errorText}>{error}</Text>
-        <Text style={styles.errorSubtext}>
-          Go to phone Settings → Apps → HillSafe → Permissions → Location
-        </Text>
       </View>
     );
   }
 
-  // ── GPS status row ───────────────────────────────────────────────────────
-  const gpsStatus = coords
-    ? `${coords.latitude.toFixed(4)}°N, ${coords.longitude.toFixed(4)}°E`
-    : 'Searching...';
+  const riskColor =
+    riskScore <= 3 ? COLORS.safe :
+    riskScore <= 6 ? COLORS.caution :
+    COLORS.danger;
+
+  const altitudeSource =
+    hasBarometer      ? 'Barometric sensor � accurate to 5m' :
+    gpsAltitude !== null ? 'GPS altitude � accurate to 20m' :
+    'Open-Elevation API � accurate to 10m';
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+    <SafeAreaView style={styles.safe} edges={['bottom']}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {/* GPS status bar */}
-        <View style={styles.gpsBar}>
-          <View style={styles.gpsLive}>
+        {/* Status bar */}
+        <View style={styles.statusBar}>
+          <View style={styles.gpsRow}>
             <View style={[styles.dot, { backgroundColor: coords ? COLORS.safe : COLORS.caution }]} />
-            <Text style={styles.gpsLabel}>
-              {coords ? 'GPS Active · Live' : 'Acquiring GPS...'}
-            </Text>
+            <Text style={styles.gpsText}>{coords ? 'GPS Active � Live' : 'Acquiring...'}</Text>
           </View>
-          <Text style={styles.gpsCoords}>{gpsStatus}</Text>
+          <TouchableOpacity style={styles.calibBtn} onPress={() => setShowCalib(true)}>
+            <Text style={styles.calibBtnText}>Calibrate</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Altitude meter */}
-        <AltitudeMeter
-          altitude={altitude}
-          riskLevel={riskLevel}
-          hasBarometer={hasBarometer}
-        />
+        {coords && (
+          <Text style={styles.coords}>
+            {coords.latitude.toFixed(4)}N  {coords.longitude.toFixed(4)}E
+          </Text>
+        )}
 
+        {/* Altitude meter */}
+        <AltitudeMeter altitude={altitude} riskLevel={riskLevel} hasBarometer={hasBarometer} />
+        <View style={styles.gap} />
+
+        {/* Session stats */}
+        <View style={styles.sessionRow}>
+          {[
+            { label: 'Session High', value: (maxAlt ?? altitude) + 'm', color: COLORS.danger  },
+            { label: 'Session Low',  value: (minAlt ?? altitude) + 'm', color: COLORS.safe    },
+            { label: 'Movement',     value: movementLabel,               color: COLORS.accent  },
+            { label: 'Time',         value: sessionMinutes + ' min',     color: COLORS.muted   },
+          ].map(s => (
+            <View key={s.label} style={styles.sessionCard}>
+              <Text style={[styles.sessionVal, { color: s.color }]}>{s.value}</Text>
+              <Text style={styles.sessionLabel}>{s.label}</Text>
+            </View>
+          ))}
+        </View>
+        <View style={styles.gap} />
+
+        {/* Altitude source info card */}
+        <View style={styles.sourceCard}>
+          <Text style={styles.sourceTitle}>Altitude Source</Text>
+          {[
+            { method: 'Barometer',          accuracy: '5m',  active: hasBarometer,         color: COLORS.safe    },
+            { method: 'GPS',                accuracy: '20m', active: gpsAltitude !== null,  color: COLORS.caution },
+            { method: 'Open-Elevation API', accuracy: '10m', active: !hasBarometer,         color: COLORS.accent  },
+          ].map(s => (
+            <View key={s.method} style={styles.sourceRow}>
+              <View style={[styles.sourceDot, { backgroundColor: s.active ? s.color : COLORS.border }]} />
+              <Text style={[styles.sourceMethod, { color: s.active ? COLORS.text : COLORS.muted }]}>
+                {s.method}
+              </Text>
+              <Text style={styles.sourceAccuracy}>+/- {s.accuracy}</Text>
+              <Text style={[styles.sourceStatus, { color: s.active ? s.color : COLORS.border }]}>
+                {s.active ? 'ACTIVE' : 'INACTIVE'}
+              </Text>
+            </View>
+          ))}
+        </View>
+        <View style={styles.gap} />
+
+        {/* Altitude graph */}
+        <AltitudeGraph
+          altHistory={altHistory}
+          maxAlt={maxAlt ?? altitude}
+          minAlt={minAlt ?? altitude}
+          movementLabel={movementLabel}
+        />
         <View style={styles.gap} />
 
         {/* Slope gauge */}
         <SlopeGauge slope={slope} slopeSeverity={slopeSeverity} />
-
         <View style={styles.gap} />
 
-        {/* Quick stats grid */}
-        <View style={styles.statsGrid}>
-          <StatCard icon="thermometer" label="Pressure" value={pressure ? `${pressure} hPa` : 'N/A'} />
-          <StatCard icon="speedometer" label="Risk Score" value={`${riskScore}/10`} color={riskScoreColor(riskScore)} />
-          <StatCard icon="home" label="Nearest Shelter" value="Week 3" muted />
-          <StatCard icon="pin" label="Nearby Pins" value="Week 4" muted />
-        </View>
-
-        <View style={styles.gap} />
-
-        {/* Risk score card */}
-        <RiskScoreCard
-          riskScore={riskScore}
-          altitude={altitude}
-          slope={slope}
+        {/* Pressure card */}
+        <PressureCard
+          pressure={pressure}
+          pressureTrend={pressureTrend}
+          hasBarometer={hasBarometer}
         />
-
         <View style={styles.gap} />
 
-        {/* Barometer note */}
-        {!hasBarometer && (
-          <View style={styles.infoBox}>
-            <Ionicons name="information-circle" size={16} color={COLORS.accent} />
-            <Text style={styles.infoText}>
-              Barometer not detected — using GPS altitude. Result may vary by ±20m.
-            </Text>
-          </View>
-        )}
+        {/* Risk score */}
+        <RiskScoreCard riskScore={riskScore} altitude={altitude} slope={slope} />
+        <View style={styles.gap} />
 
-        {/* SOS Button */}
-        <TouchableOpacity style={styles.sosButton} onPress={handleSOS} activeOpacity={0.85}>
-          <Ionicons name="alert-circle" size={22} color={COLORS.white} />
-          <Text style={styles.sosText}>SOS — BROADCAST MY LOCATION</Text>
+        {/* SOS button */}
+        <TouchableOpacity style={styles.sosBtn} onPress={handleSOS} activeOpacity={0.85}>
+          <Text style={styles.sosBtnText}>SOS � BROADCAST MY LOCATION</Text>
         </TouchableOpacity>
 
         <View style={{ height: SPACING.xl }} />
       </ScrollView>
+
+      <CalibrationModal
+        visible={showCalib}
+        onClose={() => setShowCalib(false)}
+        currentAltitude={altitude}
+        calibOffset={calibOffset}
+        onCalibrate={calibrate}
+        onReset={resetCalibration}
+      />
     </SafeAreaView>
   );
 }
 
-// ─── StatCard sub-component ──────────────────────────────────────────────────
-function StatCard({ icon, label, value, color, muted }) {
-  return (
-    <View style={statStyles.card}>
-      <Ionicons name={icon + '-outline'} size={20} color={muted ? COLORS.border : COLORS.accent} />
-      <Text style={[statStyles.value, color ? { color } : null, muted && statStyles.muted]}>
-        {value}
-      </Text>
-      <Text style={statStyles.label}>{label}</Text>
-    </View>
-  );
-}
-
-function riskScoreColor(score) {
-  if (score <= 3) return COLORS.safe;
-  if (score <= 6) return COLORS.caution;
-  return COLORS.danger;
-}
-
-// ─── Styles ──────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: COLORS.bg },
-  scroll: { flex: 1 },
+  safe:    { flex: 1, backgroundColor: COLORS.bg },
+  scroll:  { flex: 1 },
   content: { padding: SPACING.lg },
   centered: {
     flex: 1, backgroundColor: COLORS.bg,
     alignItems: 'center', justifyContent: 'center', padding: SPACING.xl,
   },
-  loadingText: {
-    color: COLORS.text, fontSize: FONTS.title, marginTop: SPACING.lg, fontWeight: '600',
-  },
-  loadingSubtext: {
-    color: COLORS.muted, fontSize: FONTS.body, marginTop: SPACING.sm, textAlign: 'center',
-  },
-  errorText: {
-    color: COLORS.danger, fontSize: FONTS.label, marginTop: SPACING.md,
-    textAlign: 'center', fontWeight: '600',
-  },
-  errorSubtext: {
-    color: COLORS.muted, fontSize: FONTS.body, marginTop: SPACING.sm,
-    textAlign: 'center', lineHeight: 20,
-  },
-  gpsBar: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    marginBottom: SPACING.md,
-  },
-  gpsLive: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  dot: { width: 8, height: 8, borderRadius: 4 },
-  gpsLabel: { color: COLORS.accent, fontSize: FONTS.small, fontWeight: '600' },
-  gpsCoords: { color: COLORS.muted, fontSize: 11 },
-  gap: { height: SPACING.md },
-  statsGrid: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm,
-  },
-  infoBox: {
-    flexDirection: 'row', gap: 8, alignItems: 'flex-start',
-    backgroundColor: COLORS.card, borderRadius: RADIUS.md, padding: SPACING.md,
-    borderWidth: 1, borderColor: COLORS.border, marginBottom: SPACING.md,
-  },
-  infoText: { color: COLORS.muted, fontSize: FONTS.small, flex: 1, lineHeight: 18 },
-  sosButton: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: SPACING.sm, backgroundColor: COLORS.danger,
-    borderRadius: RADIUS.lg, padding: SPACING.lg,
-    shadowColor: COLORS.danger, shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4, shadowRadius: 12, elevation: 8,
-  },
-  sosText: { color: COLORS.white, fontWeight: '800', fontSize: FONTS.label, letterSpacing: 0.5 },
-});
-
-const statStyles = StyleSheet.create({
-  card: {
-    flex: 1, minWidth: '45%', backgroundColor: COLORS.card,
-    borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border,
-    padding: SPACING.md, gap: 4,
-  },
-  value: { color: COLORS.text, fontSize: FONTS.label, fontWeight: '700' },
-  label: { color: COLORS.muted, fontSize: 11 },
-  muted: { color: COLORS.border },
+  loadingText: { color: COLORS.text, fontSize: FONTS.title, marginTop: SPACING.lg, fontWeight: '600' },
+  loadingSub:  { color: COLORS.muted, fontSize: FONTS.body, marginTop: SPACING.sm, textAlign: 'center' },
+  errorText:   { color: COLORS.danger, fontSize: FONTS.label, textAlign: 'center' },
+  statusBar:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  gpsRow:      { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  dot:         { width: 8, height: 8, borderRadius: 4 },
+  gpsText:     { color: COLORS.accent, fontSize: FONTS.small, fontWeight: '600' },
+  calibBtn:    { paddingHorizontal: SPACING.sm, paddingVertical: 4, backgroundColor: COLORS.card, borderRadius: RADIUS.full, borderWidth: 1, borderColor: COLORS.border },
+  calibBtnText:{ color: COLORS.accent, fontSize: FONTS.small },
+  coords:      { color: COLORS.muted, fontSize: 11, marginBottom: SPACING.md },
+  gap:         { height: SPACING.md },
+  sessionRow:  { flexDirection: 'row', gap: SPACING.sm },
+  sessionCard: { flex: 1, backgroundColor: COLORS.card, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border, padding: SPACING.sm, alignItems: 'center' },
+  sessionVal:  { fontSize: FONTS.small, fontWeight: '700' },
+  sessionLabel:{ color: COLORS.muted, fontSize: 9, marginTop: 2, textAlign: 'center' },
+  sourceCard:  { backgroundColor: COLORS.card, borderRadius: RADIUS.lg, borderWidth: 1, borderColor: COLORS.border, padding: SPACING.lg },
+  sourceTitle: { color: COLORS.muted, fontSize: FONTS.small, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: SPACING.sm },
+  sourceRow:   { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  sourceDot:   { width: 8, height: 8, borderRadius: 4 },
+  sourceMethod:{ flex: 1, fontSize: FONTS.body },
+  sourceAccuracy:{ color: COLORS.muted, fontSize: FONTS.small },
+  sourceStatus:{ fontSize: 11, fontWeight: '700', minWidth: 60, textAlign: 'right' },
+  sosBtn:      { backgroundColor: COLORS.danger, borderRadius: RADIUS.lg, padding: SPACING.lg, alignItems: 'center', shadowColor: COLORS.danger, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 8 },
+  sosBtnText:  { color: COLORS.white, fontWeight: '800', fontSize: FONTS.label, letterSpacing: 0.5 },
 });
