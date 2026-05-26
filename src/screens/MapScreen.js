@@ -3,12 +3,13 @@ import {
   View, Text, StyleSheet, TouchableOpacity,
   ActivityIndicator, Alert, Linking,
 } from 'react-native';
-import MapView, { Marker, Circle, UrlTile } from 'react-native-maps';
+import MapView, { Marker, Circle, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { fetchAllPins, votePin, PIN_TYPES, MOCK_PINS } from '../services/supabase';
 import PinDetailSheet from '../components/PinDetailSheet';
 import MapFilterBar from '../components/MapFilterBar';
 import { COLORS, FONTS, RADIUS, SPACING } from '../constants/theme';
+
 
 const DEFAULT_REGION = {
   latitude: 18.7405, longitude: 83.4076,
@@ -92,18 +93,13 @@ export default function MapScreen() {
       <MapView
         ref={mapRef}
         style={styles.map}
+        provider={PROVIDER_GOOGLE} 
         initialRegion={region}
         showsUserLocation
         showsMyLocationButton={false}
         showsCompass
       >
-        <UrlTile
-          urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-          maximumZ={19}
-          flipY={false}
-          tileSize={256}
-          shouldReplaceMapContent={true}
-        />
+
         {userLocation && (
           <Circle
             center={userLocation}
@@ -218,3 +214,9 @@ const styles = StyleSheet.create({
   loadingOverlay:  { ...StyleSheet.absoluteFillObject, backgroundColor: COLORS.bg + 'cc', alignItems: 'center', justifyContent: 'center' },
   loadingText:     { color: COLORS.text, marginTop: SPACING.md, fontSize: FONTS.body },
 });
+
+
+
+
+
+

@@ -222,7 +222,7 @@ export default function ProfileScreen() {
                     </Text>
                   </View>
                   <Text style={styles.reportDesc} numberOfLines={1}>{r.description}</Text>
-                  <Text style={styles.reportMeta}>{r.altitude}m · {timeAgo(r.createdAt)}</Text>
+                  <Text style={styles.reportMeta}>{r.altitude}m ï¿½ {timeAgo(r.createdAt)}</Text>
                 </View>
               </View>
             ))
@@ -258,6 +258,10 @@ export default function ProfileScreen() {
         </TouchableOpacity>
 
         <View style={{ height: SPACING.xl }} />
+
+        <Text style={{ color: COLORS.border, fontSize: 10, textAlign: 'center', marginTop: 16 }}>
+          HillSafe v1.0.0 - Built for India's Hilly Regions
+        </Text>
       </ScrollView>
     </SafeAreaView>
   );

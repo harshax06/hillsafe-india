@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View, Text, ScrollView, StyleSheet,
   TouchableOpacity, ActivityIndicator, Linking, Alert,
@@ -40,6 +41,11 @@ export default function HomeScreen() {
     resetCalibration,
   } = useSensors();
 
+  useEffect(() => {
+    AsyncStorage.setItem('hs_last_altitude', altitude.toString());
+    AsyncStorage.setItem('hs_last_slope', slope.toString());
+  }, [altitude, slope]);
+  
   const handleSOS = () => {
     if (!coords) {
       Alert.alert('GPS not ready', 'Waiting for GPS signal...');
@@ -81,9 +87,9 @@ export default function HomeScreen() {
     COLORS.danger;
 
   const altitudeSource =
-    hasBarometer      ? 'Barometric sensor — accurate to 5m' :
-    gpsAltitude !== null ? 'GPS altitude — accurate to 20m' :
-    'Open-Elevation API — accurate to 10m';
+    hasBarometer      ? 'Barometric sensor ï¿½ accurate to 5m' :
+    gpsAltitude !== null ? 'GPS altitude ï¿½ accurate to 20m' :
+    'Open-Elevation API ï¿½ accurate to 10m';
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
@@ -96,7 +102,7 @@ export default function HomeScreen() {
         <View style={styles.statusBar}>
           <View style={styles.gpsRow}>
             <View style={[styles.dot, { backgroundColor: coords ? COLORS.safe : COLORS.caution }]} />
-            <Text style={styles.gpsText}>{coords ? 'GPS Active · Live' : 'Acquiring...'}</Text>
+            <Text style={styles.gpsText}>{coords ? 'GPS Active ï¿½ Live' : 'Acquiring...'}</Text>
           </View>
           <TouchableOpacity style={styles.calibBtn} onPress={() => setShowCalib(true)}>
             <Text style={styles.calibBtnText}>Calibrate</Text>
@@ -178,7 +184,7 @@ export default function HomeScreen() {
 
         {/* SOS button */}
         <TouchableOpacity style={styles.sosBtn} onPress={handleSOS} activeOpacity={0.85}>
-          <Text style={styles.sosBtnText}>SOS — BROADCAST MY LOCATION</Text>
+          <Text style={styles.sosBtnText}>SOS ï¿½ BROADCAST MY LOCATION</Text>
         </TouchableOpacity>
 
         <View style={{ height: SPACING.xl }} />

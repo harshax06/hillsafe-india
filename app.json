@@ -1,37 +1,60 @@
 {
   "expo": {
-    "name": "hillsafe-v2",
-    "slug": "hillsafe-v2",
+    "name": "HillSafe",
+    "slug": "hillsafe",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
-    "ios": {
-      "supportsTablet": true
-    },
+    "userInterfaceStyle": "dark",
+    "jsEngine": "hermes",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "android": {
+      "jsEngine": "hermes",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "backgroundColor": "#E6F4FE","backgroundImage": "./assets/android-icon-background.png"
+      },
+      "package": "com.hillsafe.app",
+      "permissions": [
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.SEND_SMS",
+        "android.permission.VIBRATE",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyC0DMrfEcq96NBiQDDmlf2drvHwICuuZNs"
+        }
       }
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    },
     "plugins": [
-      "expo-web-browser"
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "HillSafe needs your location to detect altitude and nearby hazards."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "HillSafe needs photo access.",
+          "cameraPermission": "HillSafe needs camera to capture hazard photos."
+        }
+      ]
     ],
     "extra": {
-      "owmApiKey": "EXPO_PUBLIC_OWM_API_KEY",
-      "supabaseUrl": "EXPO_PUBLIC_SUPABASE_URL",
-      "supabaseAnonKey": "EXPO_PUBLIC_SUPABASE_ANON_KEY"
+      "eas": {
+        "projectId": "bbd57fe7-ff70-461d-8161-c4a0c5698cf0"
+      }
     }
   }
 }
+
+
